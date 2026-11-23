@@ -1,54 +1,60 @@
 # lbmute
 
-A tiny macOS command-line tool that **mutes and unmutes the input of one audio device** — without touching the physical microphone behind it.
+[![macOS](https://img.shields.io/badge/macOS-Core%20Audio-000000?logo=apple&logoColor=white)](#voraussetzungen)
+[![Swift](https://img.shields.io/badge/Swift-F05138?logo=swift&logoColor=white)](Sources/lbmute.swift)
+[![Lizenz: MIT](https://img.shields.io/badge/Lizenz-MIT-blue)](LICENSE)
+
+**Deutsch** · [English](README.en.md)
+
+Ein winziges macOS-Kommandozeilenwerkzeug, das **den Eingang eines einzelnen Audiogeräts stumm- und wieder hörbar schaltet**, ohne das echte Mikrofon dahinter anzufassen.
 
 ```bash
-lbmute ChatGPT-Mikro set 1   # that device now delivers silence
-lbmute ChatGPT-Mikro set 0   # audible again
+lbmute ChatGPT-Mikro set 1   # dieses Gerät liefert jetzt Stille
+lbmute ChatGPT-Mikro set 0   # wieder hörbar
 ```
 
-Virtual devices, such as those created with [Loopback](https://rogueamoeba.com/loopback/) by Rogue Amoeba, expose a Core Audio mute control on their input side. `lbmute` reads and sets it. Loopback itself has no scripting interface (no AppleScript, no URL scheme, no Shortcuts action); this control is the one hook that can be driven from outside.
+Virtuelle Geräte, etwa aus [Loopback](https://rogueamoeba.com/loopback/) von Rogue Amoeba, stellen über Core Audio einen Stummschalter auf der Eingangsseite bereit. `lbmute` liest und setzt ihn. Loopback selbst hat keine Skript-Schnittstelle (kein AppleScript, kein URL-Schema, keine Kurzbefehle-Aktion); dieser Schalter ist der eine Ansatzpunkt, den man von außen bedienen kann.
 
-## Why
+## Wozu
 
-One microphone, two consumers, and only one of them should hear you.
+Ein Mikrofon, zwei Abnehmer, und nur einer soll dich hören.
 
-Typical case: you dictate into a text field while a voice chat runs in another app. The voice chat must not hear the dictation, but the dictation tool still needs the microphone. Muting the real microphone silences both. Muting a **virtual device that only the voice chat uses** silences only the voice chat.
+Typischer Fall: Du diktierst in ein Textfeld, während in einer anderen App ein Sprachchat läuft. Der Sprachchat soll das Diktat nicht mithören, das Diktierprogramm braucht aber weiter das Mikrofon. Schaltest du das echte Mikrofon stumm, hört keiner von beiden etwas. Schaltest du ein **virtuelles Gerät stumm, das nur der Sprachchat nutzt**, schweigt nur der Sprachchat.
 
 ```
-real microphone ──┬──────────────────────► dictation tool (keeps hearing you)
-                  └─► virtual device ────► voice chat     (lbmute mutes this one)
+echtes Mikrofon ──┬──────────────────────► Diktierprogramm (hört weiter zu)
+                  └─► virtuelles Gerät ──► Sprachchat      (lbmute schaltet dieses stumm)
 ```
 
-## Requirements
+## Voraussetzungen
 
-- macOS (Core Audio). Developed on macOS 26.
-- Xcode command line tools (`swiftc`) to build.
-- A device that exposes an input mute control. Loopback virtual devices do; many physical microphones do not. `lbmute list` shows which.
+- macOS (Core Audio). Entwickelt unter macOS 26.
+- Xcode-Kommandozeilenwerkzeuge (`swiftc`) zum Bauen.
+- Ein Gerät mit Eingangs-Stummschaltung. Loopback-Geräte haben sie, viele echte Mikrofone nicht. `lbmute list` zeigt es.
 
-## Build and install
+## Bauen und installieren
 
 ```bash
 git clone https://github.com/toolwerk/lbmute.git
 cd lbmute
-make install            # builds and copies to ~/bin/lbmute
-make install PREFIX=/usr/local/bin   # or another location
+make install                         # baut und kopiert nach ~/bin/lbmute
+make install PREFIX=/usr/local/bin   # oder an einen anderen Ort
 ```
 
-`make` alone builds `./lbmute` in the repository.
+Nur `make` baut `./lbmute` im Repository.
 
-## Usage
+## Benutzung
 
 ```
-lbmute list                  list all audio devices with their input mute state
-lbmute <device> get          print the mute state
-lbmute <device> set 0|1      set the mute state and print it
-lbmute <device> toggle       flip the mute state and print it
+lbmute list                  alle Audiogeräte mit ihrem Stumm-Zustand
+lbmute <Gerät> get           Stumm-Zustand ausgeben
+lbmute <Gerät> set 0|1       Stumm-Zustand setzen und ausgeben
+lbmute <Gerät> toggle        Stumm-Zustand umkehren und ausgeben
 ```
 
-`<device>` is the exact device name **or** any part of the device UID. `get`, `set` and `toggle` print the resulting state: `1` is muted, `0` is audible.
+`<Gerät>` ist der genaue Gerätename **oder** ein beliebiger Teil der Geräte-UID. `get`, `set` und `toggle` geben den Zustand danach aus: `1` ist stumm, `0` ist hörbar.
 
-`lbmute list` output looks like this (name, UID, mute state; `-` means the device has no input mute control):
+Die Ausgabe von `lbmute list` sieht so aus (Name, UID, Stumm-Zustand; `-` heißt: das Gerät hat keine Eingangs-Stummschaltung):
 
 ```
 Elgato Wave:3 | AppleUSBAudioEngine:Elgato Systems:Elgato Wave:3:…:2,1 | inputMute:0
@@ -56,76 +62,76 @@ ChatGPT-Mikro | com.rogueamoeba.Loopback::DF6F7BF0-… | inputMute:0
 Multiausgangsgerät | ~:AMS2_StackedOutput:0 | inputMute:-
 ```
 
-Exit codes: `0` success, `1` device not found / no mute control / could not set, `2` wrong usage. Errors go to stderr.
+Exit-Codes: `0` Erfolg, `1` Gerät nicht gefunden, keine Stummschaltung vorhanden oder Setzen fehlgeschlagen, `2` falsche Benutzung. Fehlermeldungen gehen nach stderr.
 
-Use a UID part when two devices share a name, or when the name contains characters that are awkward to type:
+Ein UID-Teil hilft, wenn zwei Geräte denselben Namen haben:
 
 ```bash
 lbmute DF6F7BF0 get
 ```
 
-## Example: silence a voice chat while dictating
+## Beispiel: Sprachchat stumm, solange du diktierst
 
-### 1. Create the virtual device in Loopback
+### 1. Virtuelles Gerät in Loopback anlegen
 
-1. In Loopback, add a new virtual device and name it, for example, `ChatGPT-Mikro`.
-2. Add **only your real microphone** as its source.
-3. In the voice-chat app, pick `ChatGPT-Mikro` as its microphone input.
-4. Keep the dictation tool on the **real** microphone.
+1. In Loopback ein neues virtuelles Gerät anlegen, zum Beispiel `ChatGPT-Mikro`.
+2. **Nur dein echtes Mikrofon** als Quelle hinzufügen.
+3. In der Sprachchat-App `ChatGPT-Mikro` als Mikrofon wählen.
+4. Das Diktierprogramm bleibt am **echten** Mikrofon.
 
-Check that `lbmute` sees it:
+Prüfen, ob `lbmute` das Gerät sieht:
 
 ```bash
 lbmute list | grep ChatGPT-Mikro
 # ChatGPT-Mikro | com.rogueamoeba.Loopback::… | inputMute:0
 ```
 
-### 2. Hook it to the dictation tool
+### 2. An das Diktierprogramm anbinden
 
-Any tool that can run a command at the start and end of a recording works. With [TorroWhisper](https://github.com/mahype/TorroWhisper) (settings → *Aufnahme* / *Recording* → *Commands*, available once its recording hooks are released):
+Jedes Programm, das beim Start und beim Ende einer Aufnahme einen Befehl ausführen kann, taugt dafür. Mit [TorroWhisper](https://github.com/mahype/TorroWhisper) (Einstellungen → Aufnahme → Befehle, sobald dessen Aufnahme-Befehle veröffentlicht sind):
 
-| Field | Command |
+| Feld | Befehl |
 | --- | --- |
-| Run when recording starts | `~/bin/lbmute ChatGPT-Mikro set 1` |
-| Run when recording ends | `~/bin/lbmute ChatGPT-Mikro set 0` |
+| Bei Aufnahmebeginn ausführen | `~/bin/lbmute ChatGPT-Mikro set 1` |
+| Bei Aufnahmeende ausführen | `~/bin/lbmute ChatGPT-Mikro set 0` |
 
-Because the tool reports the real recording state, the unmute also runs when a recording is cancelled, fails or the app quits, so the voice chat is never left muted.
+Weil das Programm den echten Aufnahmezustand meldet, läuft das Wiederhörbarschalten auch bei Abbruch, Fehler und Beenden der App. Der Sprachchat bleibt also nie stumm hängen.
 
-### 3. Or from the shell
+### 3. Oder von der Shell
 
 ```bash
 lbmute ChatGPT-Mikro set 1
-# … dictate …
+# … diktieren …
 lbmute ChatGPT-Mikro set 0
 ```
 
-In a script, restore the state you found instead of forcing `0`:
+In einem Skript den vorgefundenen Zustand wiederherstellen, statt pauschal `0` zu setzen:
 
 ```bash
-before=$(lbmute ChatGPT-Mikro get)
+vorher=$(lbmute ChatGPT-Mikro get)
 lbmute ChatGPT-Mikro set 1
-# … do the thing …
-lbmute ChatGPT-Mikro set "$before"
+# … etwas tun …
+lbmute ChatGPT-Mikro set "$vorher"
 ```
 
-## Measured
+## Gemessen
 
-A level measurement with `ffmpeg` (`volumedetect`) on the virtual device, same spoken input:
+Pegelmessung mit `ffmpeg` (`volumedetect`) am virtuellen Gerät, gleiche Spracheingabe:
 
-| State | Mean level |
+| Zustand | Mittlerer Pegel |
 | --- | --- |
-| audible | about −31 dB |
-| muted | about −91 dB |
+| hörbar | etwa −31 dB |
+| stumm | etwa −91 dB |
 
-while the real microphone kept recording unchanged.
+Das echte Mikrofon nahm dabei unverändert weiter auf.
 
-## Notes and limits
+## Hinweise und Grenzen
 
-- The mute is a property of the device, not of a process. Every app using that device is muted together.
-- State is not persisted: after a restart of Loopback or a reboot, devices start audible again.
-- `lbmute` only changes the mute flag. It does not create, change or remove devices.
-- No relation to Rogue Amoeba. Loopback is a product of Rogue Amoeba Software, LLC.
+- Der Stummschalter gehört zum Gerät, nicht zu einem Prozess. Jede App, die dieses Gerät nutzt, ist gemeinsam stumm.
+- Der Zustand wird nicht gespeichert: Nach einem Neustart von Loopback oder des Rechners sind die Geräte wieder hörbar.
+- `lbmute` ändert nur das Stumm-Flag. Es legt keine Geräte an, ändert oder löscht keine.
+- Keine Verbindung zu Rogue Amoeba. Loopback ist ein Produkt von Rogue Amoeba Software, LLC.
 
-## License
+## Lizenz
 
-MIT, see [LICENSE](LICENSE).
+MIT, siehe [LICENSE](LICENSE).
